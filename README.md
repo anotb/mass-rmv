@@ -1,6 +1,7 @@
-# mass-rmv
+---
+---
 
-## Massachusetts RMV Appointment Checker
+# Massachusetts RMV Appointment Checker
 
 This tool helps you automatically check for the earliest available dates at your chosen Massachusetts RMV service centers. It will notify you if a new earliest date becomes available.
 
@@ -12,7 +13,7 @@ To run the notebook in Google Colab, simply click on the badge below:
 
 After opening the notebook in Colab, you can execute the cells to run the code. Make sure to follow the instructions provided in the notebook.
 
-### Instructions
+## Instructions
 
 1. **Setup and Dependencies**:
    - If you're using this on Google Colab, the first few cells will help you set up the necessary dependencies.
@@ -40,6 +41,6 @@ After opening the notebook in Colab, you can execute the cells to run the code. 
 7. **Copying to Your Colab Workspace**:
    - If you're viewing a shared version of this notebook, it is in a read-only mode. To run or modify it, you'll need to save a copy to your own Google Drive. This ensures your session remains private.
 
-### Usage
+## Usage
 
 Simply follow the instructions in each cell of the notebook. Make sure to replace the placeholder URL with your custom URL from the Massachusetts RMV email and select the service centers you wish to monitor.
