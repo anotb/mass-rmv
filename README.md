@@ -4,6 +4,14 @@
 
 This tool helps you automatically check for the earliest available dates at your chosen Massachusetts RMV service centers. It will notify you if a new earliest date becomes available.
 
+## Open and Run in Google Colab
+
+To run the notebook in Google Colab, simply click on the badge below:
+
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/anotb/mass-rmv/blob/main/rmv_checker.ipynb)
+
+After opening the notebook in Colab, you can execute the cells to run the code. Make sure to follow the instructions provided in the notebook.
+
 ### Instructions
 
 1. **Setup and Dependencies**:
