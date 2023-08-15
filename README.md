@@ -1,8 +1,3 @@
----
-layout: default
-title: Massachusetts RMV Appointment Checker
----
-
 # Massachusetts RMV Appointment Checker
 
 This tool helps you automatically check for the earliest available dates at your chosen Massachusetts RMV service centers. It will notify you if a new earliest date becomes available.
