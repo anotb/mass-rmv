@@ -1,4 +1,6 @@
 ---
+layout: default
+title: Massachusetts RMV Appointment Checker
 ---
 
 # Massachusetts RMV Appointment Checker
