@@ -191,11 +191,21 @@ def run_monitor():
         logger.error("Could not fetch location data. Exiting.")
         sys.exit(1)
 
+    location_number_to_id_map = {str(loc['number']): loc['id'] for loc in all_locations_data}
     location_id_to_name_map = {loc['id']: loc['service_center'] for loc in all_locations_data}
-    locations_to_monitor = [
-        {'id': loc_id, 'service_center': location_id_to_name_map.get(loc_id, f"ID-{loc_id}")} 
-        for loc_id in locations_to_monitor_ids
-    ]
+
+    locations_to_monitor_numbers = locations_to_monitor_ids_str.split(',')
+    
+    locations_to_monitor = []
+    for num in locations_to_monitor_numbers:
+        loc_id = location_number_to_id_map.get(num)
+        if loc_id:
+            locations_to_monitor.append({
+                'id': loc_id,
+                'service_center': location_id_to_name_map.get(loc_id, f"ID-{loc_id}")
+            })
+        else:
+            logger.warning(f"Location number '{num}' from your .env file was not found in the list of available locations. It will be ignored.")
 
     # --- State Reset ---
     if is_interactive and os.path.exists(STATE_FILE):

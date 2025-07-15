@@ -107,10 +107,10 @@ def prompt_for_locations(rmv_url):
             print("Error: Invalid input. Please enter only numbers, separated by commas.", file=sys.stderr)
     
     locations_to_monitor = [loc for loc in all_locations if loc['number'] in selected_numbers]
-    location_ids_to_monitor = [loc['id'] for loc in locations_to_monitor]
-    location_ids_str = ','.join(location_ids_to_monitor)
-    update_env_file("LOCATIONS_TO_MONITOR", location_ids_str)
-    return location_ids_str
+    # Save the human-friendly display numbers, not the internal IDs
+    location_numbers_str = ','.join(str(n) for n in selected_numbers)
+    update_env_file("LOCATIONS_TO_MONITOR", location_numbers_str)
+    return location_numbers_str
 
 def prompt_for_frequency():
     """Prompts user for the check frequency and saves it."""
