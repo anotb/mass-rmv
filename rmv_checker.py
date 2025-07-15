@@ -143,36 +143,43 @@ def get_rmv_data(url, locations_to_check_by_id=None):
     options.add_argument("--headless")
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
-    options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/555.36 (KHTML, like Gecko) Chrome/90.0.4430.212 Safari/555.36")
+    options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.212 Safari/537.36")
+    
+    driver = None  # Initialize driver to None
+    try:
+        driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()), options=options)
+        wait = WebDriverWait(driver, 10)
+        results = []
+        num_to_check = len(locations_to_check_by_id)
 
-    results = []
-    num_to_check = len(locations_to_check_by_id)
+        for i, location in enumerate(locations_to_check_by_id):
+            try:
+                driver.get(url)
+                
+                element_to_click = wait.until(EC.presence_of_element_located((By.XPATH, f"//button[@data-id='{location['id']}']")))
+                
+                location_name = location['service_center']
+                print(f"Checking {i+1}/{num_to_check}: {location_name}...")
+                driver.execute_script("arguments[0].click();", element_to_click)
 
-    for i, location in enumerate(locations_to_check_by_id):
-        try:
-            driver.get(url)
-            
-            element_to_click = wait.until(EC.presence_of_element_located((By.XPATH, f"//button[@data-id='{location['id']}']")))
-            
-            location_name = location['service_center']
-            print(f"Checking {i+1}/{num_to_check}: {location_name}...")
-            driver.execute_script("arguments[0].click();", element_to_click)
-
-            earliest_date = get_earliest_date(driver, wait)
-            
-            results.append({
-                "id": location['id'],
-                "service_center": location_name,
-                "earliest_date": earliest_date
-            })
-        except Exception as e:
-            location_name = location.get('service_center', f"ID-{location['id']}")
-            print(f"An unexpected error occurred while checking {location_name}: {e}", file=sys.stderr)
-            # Continue to the next location
-            continue
-
-    driver.quit()
-    return results
+                earliest_date = get_earliest_date(driver, wait)
+                
+                results.append({
+                    "id": location['id'],
+                    "service_center": location_name,
+                    "earliest_date": earliest_date
+                })
+            except Exception as e:
+                location_name = location.get('service_center', f"ID-{location['id']}")
+                print(f"An unexpected error occurred while checking {location_name}: {e}", file=sys.stderr)
+                # Continue to the next location
+                continue
+        
+        return results
+    finally:
+        # This will always run, ensuring the browser is closed even if errors occur.
+        if driver:
+            driver.quit()
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run the interactive setup for the RMV appointment checker.")
