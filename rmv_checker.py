@@ -18,14 +18,55 @@ def get_locations(driver, wait):
         return []
 
 def get_earliest_date(driver, wait):
-    """Extracts the earliest available date and time from the page."""
+    """
+    Extracts the earliest available date and time from the page by finding the
+    earliest date, clicking the corresponding 'Morning' or 'Afternoon' control,
+    and then grabbing the first available time slot.
+    """
     try:
-        day_element = wait.until(EC.presence_of_element_located((By.CLASS_NAME, "DateTimeGrouping-Day")))
-        day_text = ' '.join([p.text for p in day_element.find_elements(By.TAG_NAME, "p")])
-        time_element = driver.find_element(By.CLASS_NAME, "ServiceAppointmentDateTime")
-        time_text = time_element.text
-        return f"{day_text}, {time_text}"
+        # 1. Find the container for the very first day column. This is the most reliable parent.
+        first_day_column = wait.until(EC.presence_of_element_located((By.CLASS_NAME, "DateTimeGrouping-Column")))
+        
+        # 2. Extract the date text from within that column for the final output.
+        day_text_elements = first_day_column.find_elements(By.TAG_NAME, "p")
+        day_text = ' '.join([p.text for p in day_text_elements])
+        day_text = day_text.strip().rstrip(',')
+
+        # 3. Find the clickable control (Morning or Afternoon) within that same column.
+        clickable_control = None
+        try:
+            # Prioritize 'Morning'
+            clickable_control = first_day_column.find_element(By.XPATH, ".//div[contains(@class, 'Morning')]")
+        except NoSuchElementException:
+            try:
+                # Fallback to 'Afternoon'
+                clickable_control = first_day_column.find_element(By.XPATH, ".//div[contains(@class, 'Afternoon')]")
+            except NoSuchElementException:
+                # If no controls are found, it means no time slots are available for this day.
+                return day_text
+
+        # 4. Click the control to reveal the time slots.
+        if clickable_control:
+            # Check if the section is already expanded before clicking.
+            if clickable_control.get_attribute('aria-pressed') == 'false':
+                 driver.execute_script("arguments[0].click();", clickable_control)
+            
+            # 5. Wait for the container of time slots to become expanded.
+            time_container_id = clickable_control.get_attribute('aria-controls')
+            time_wait = WebDriverWait(driver, 5)
+            
+            # Wait for the first time slot to be present inside the correct container.
+            first_time_slot = time_wait.until(EC.presence_of_element_located(
+                (By.XPATH, f"//div[@id='{time_container_id}']//div[contains(@class, 'ServiceAppointmentDateTime')]")
+            ))
+            
+            time_text = first_time_slot.text.strip()
+            return f"{day_text}, {time_text}"
+
+        return day_text
+
     except TimeoutException:
+        # This will catch cases where no appointment columns are found at all.
         try:
             no_appt_msg = driver.find_element(By.XPATH, "//*[contains(text(), 'no available appointments')]")
             if no_appt_msg:
@@ -33,7 +74,8 @@ def get_earliest_date(driver, wait):
         except NoSuchElementException:
             return "No Date Found"
     except Exception as e:
-        return f"Error finding date: {e}"
+        print(f"An unexpected error occurred in get_earliest_date: {e}", file=sys.stderr)
+        return "Error during scraping"
 
 def setup_env_file(url=None):
     """Runs an interactive setup to create the .env file."""

@@ -68,9 +68,17 @@ def check_for_appointments(rmv_url, ntfy_url, locations_to_monitor, state):
         last_known_date = parse_date(last_known_date_str) if last_known_date_str else None
 
         if not last_known_date or new_date < last_known_date:
-            message = f"New appointment at {location_name}: {new_date.strftime('%a, %b %d, %Y at %I:%M %p')}"
+            # Check if the original scraped string contained a time component (AM/PM)
+            if "AM" in new_date_str or "PM" in new_date_str:
+                # We have a specific time
+                message = f"New appointment at {location_name}: {new_date.strftime('%a, %b %d, %Y at %I:%M %p')}"
+                state[location_id] = new_date.strftime('%a %b %d, %Y, %I:%M %p')
+            else:
+                # We only have a date
+                message = f"New earliest date at {location_name}: {new_date.strftime('%a, %b %d, %Y')}"
+                state[location_id] = new_date.strftime('%a %b %d, %Y')
+            
             send_ntfy_notification(ntfy_url, message)
-            state[location_id] = new_date.strftime('%a %b %d, %Y, %I:%M %p')
         else:
             print(f"No change for {location_name}. Earliest is still {last_known_date_str}")
     
