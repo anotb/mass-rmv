@@ -141,6 +141,7 @@ def run_monitor():
             sys.exit(1)
         logger.warning("RMV_URL not found in .env file.")
         rmv_url = prompt_for_rmv_url()
+        load_dotenv(override=True) # Reload to make new value available
 
     ntfy_url = os.getenv("NTFY_URL")
     if not ntfy_url:
@@ -149,6 +150,7 @@ def run_monitor():
             sys.exit(1)
         logger.warning("NTFY_URL not found in .env file.")
         ntfy_url = prompt_for_ntfy_url()
+        load_dotenv(override=True)
 
     locations_to_monitor_ids_str = os.getenv("LOCATIONS_TO_MONITOR")
     if not locations_to_monitor_ids_str:
@@ -157,6 +159,7 @@ def run_monitor():
             sys.exit(1)
         logger.warning("LOCATIONS_TO_MONITOR not found in .env file.")
         locations_to_monitor_ids_str = prompt_for_locations(rmv_url)
+        load_dotenv(override=True)
 
     frequency_minutes_str = os.getenv("CHECK_FREQUENCY_MINUTES")
     if not frequency_minutes_str:
@@ -165,6 +168,7 @@ def run_monitor():
             sys.exit(1)
         logger.warning("CHECK_FREQUENCY_MINUTES not found in .env file.")
         frequency_minutes_str = str(prompt_for_frequency())
+        load_dotenv(override=True)
     
     locations_to_monitor_ids = locations_to_monitor_ids_str.split(',')
     frequency_minutes = int(frequency_minutes_str)
