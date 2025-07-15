@@ -131,8 +131,9 @@ def run_monitor():
     """Main monitoring loop."""
     load_dotenv()
 
-    # --- Configuration Healing ---
+    # --- Configuration Healing & Data Fetching ---
     is_interactive = sys.stdout.isatty()
+    all_locations_data = None # Initialize
     
     rmv_url = os.getenv("RMV_URL")
     if not rmv_url:
@@ -141,7 +142,7 @@ def run_monitor():
             sys.exit(1)
         logger.warning("RMV_URL not found in .env file.")
         rmv_url = prompt_for_rmv_url()
-        load_dotenv(override=True) # Reload to make new value available
+        load_dotenv(override=True)
 
     ntfy_url = os.getenv("NTFY_URL")
     if not ntfy_url:
@@ -158,7 +159,8 @@ def run_monitor():
             logger.error("FATAL: LOCATIONS_TO_MONITOR not found. Please run the script interactively once to set it up.")
             sys.exit(1)
         logger.warning("LOCATIONS_TO_MONITOR not found in .env file.")
-        locations_to_monitor_ids_str = prompt_for_locations(rmv_url)
+        # This prompt now returns the fetched location data, so we don't have to fetch it again.
+        locations_to_monitor_ids_str, all_locations_data = prompt_for_locations(rmv_url)
         load_dotenv(override=True)
 
     frequency_minutes_str = os.getenv("CHECK_FREQUENCY_MINUTES")
@@ -173,39 +175,30 @@ def run_monitor():
     locations_to_monitor_ids = locations_to_monitor_ids_str.split(',')
     frequency_minutes = int(frequency_minutes_str)
 
-    # --- Fetch Location Names ---
-    logger.info("Fetching all location data for friendly names...")
-    options = webdriver.ChromeOptions()
-    options.add_argument("--headless")
-    options.add_argument("--no-sandbox")
-    options.add_argument("--disable-dev-shm-usage")
-    driver = None
-    try:
-        driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()), options=options)
-        all_locations_data = get_all_locations(driver, rmv_url)
-    finally:
-        if driver:
-            driver.quit()
+    # If we haven't already fetched the location data during setup, fetch it now.
+    if all_locations_data is None:
+        logger.info("Fetching all location data for friendly names...")
+        options = webdriver.ChromeOptions()
+        options.add_argument("--headless")
+        options.add_argument("--no-sandbox")
+        options.add_argument("--disable-dev-shm-usage")
+        driver = None
+        try:
+            driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()), options=options)
+            all_locations_data = get_all_locations(driver, rmv_url)
+        finally:
+            if driver:
+                driver.quit()
     
     if not all_locations_data:
         logger.error("Could not fetch location data. Exiting.")
         sys.exit(1)
 
-    location_number_to_id_map = {str(loc['number']): loc['id'] for loc in all_locations_data}
     location_id_to_name_map = {loc['id']: loc['service_center'] for loc in all_locations_data}
-
-    locations_to_monitor_numbers = locations_to_monitor_ids_str.split(',')
-    
-    locations_to_monitor = []
-    for num in locations_to_monitor_numbers:
-        loc_id = location_number_to_id_map.get(num)
-        if loc_id:
-            locations_to_monitor.append({
-                'id': loc_id,
-                'service_center': location_id_to_name_map.get(loc_id, f"ID-{loc_id}")
-            })
-        else:
-            logger.warning(f"Location number '{num}' from your .env file was not found in the list of available locations. It will be ignored.")
+    locations_to_monitor = [
+        {'id': loc_id, 'service_center': location_id_to_name_map.get(loc_id, f"ID-{loc_id}")} 
+        for loc_id in locations_to_monitor_ids
+    ]
 
     # --- State Reset ---
     if is_interactive and os.path.exists(STATE_FILE):

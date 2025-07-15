@@ -70,7 +70,7 @@ def prompt_for_ntfy_url():
     return url
 
 def prompt_for_locations(rmv_url):
-    """Prompts user to select locations and saves them."""
+    """Prompts user to select locations and saves their internal IDs."""
     print("Fetching available RMV locations...")
     options = webdriver.ChromeOptions()
     options.add_argument("--headless")
@@ -87,7 +87,7 @@ def prompt_for_locations(rmv_url):
 
     if not all_locations:
         logger.error("Could not fetch locations. Cannot proceed.")
-        return None
+        return None, None
 
     print("Available Locations:")
     for loc in all_locations:
@@ -107,10 +107,12 @@ def prompt_for_locations(rmv_url):
             print("Error: Invalid input. Please enter only numbers, separated by commas.", file=sys.stderr)
     
     locations_to_monitor = [loc for loc in all_locations if loc['number'] in selected_numbers]
-    # Save the human-friendly display numbers, not the internal IDs
-    location_numbers_str = ','.join(str(n) for n in selected_numbers)
-    update_env_file("LOCATIONS_TO_MONITOR", location_numbers_str)
-    return location_numbers_str
+    location_ids_to_monitor = [loc['id'] for loc in locations_to_monitor]
+    location_ids_str = ','.join(location_ids_to_monitor)
+    update_env_file("LOCATIONS_TO_MONITOR", location_ids_str)
+    
+    # Return both the string of IDs and the full location data used to generate it
+    return location_ids_str, all_locations
 
 def prompt_for_frequency():
     """Prompts user for the check frequency and saves it."""
