@@ -83,6 +83,7 @@ def run_monitor():
     if not os.path.exists('.env'):
         print("Configuration file (.env) not found. Starting interactive setup...")
         setup_env_file()
+        load_dotenv() # Reload environment variables after setup
 
     rmv_url = os.getenv("RMV_URL")
     ntfy_url = os.getenv("NTFY_URL")
