@@ -1,6 +1,7 @@
 import argparse
 import sys
 import logging
+import os
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
@@ -11,6 +12,29 @@ from webdriver_manager.chrome import ChromeDriverManager
 
 # Use the same logger as the main monitor
 logger = logging.getLogger(__name__)
+
+def update_env_file(key, value):
+    """
+    Adds or updates a key-value pair in the .env file, preserving other values.
+    """
+    env_file = '.env'
+    lines = []
+    key_found = False
+    
+    if os.path.exists(env_file):
+        with open(env_file, 'r') as f:
+            lines = f.readlines()
+
+    with open(env_file, 'w') as f:
+        for line in lines:
+            if line.strip().startswith(key + '='):
+                f.write(f"{key}={value}\n")
+                key_found = True
+            else:
+                f.write(line)
+        
+        if not key_found:
+            f.write(f"{key}={value}\n")
 
 def get_all_locations(driver, url):
     """Gets all available RMV locations from the initial page."""
@@ -33,15 +57,20 @@ def get_all_locations(driver, url):
         logger.error("Could not find location elements on the page. The website may be down or has changed.")
         return []
 
-def setup_env_file(url=None):
-    """Runs an interactive setup to create the .env file."""
-    print("--- RMV Appointment Checker Setup ---")
-    
-    if not url:
-        url = input("Enter your custom RMV URL: ").strip()
+def prompt_for_rmv_url():
+    """Prompts user for the RMV URL and saves it."""
+    url = input("Enter your custom RMV URL: ").strip()
+    update_env_file("RMV_URL", url)
+    return url
 
-    ntfy_url = input("Enter your ntfy URL (e.g., https://ntfy.sh/your-topic): ").strip()
+def prompt_for_ntfy_url():
+    """Prompts user for the ntfy URL and saves it."""
+    url = input("Enter your ntfy URL (e.g., https://ntfy.sh/your-topic): ").strip()
+    update_env_file("NTFY_URL", url)
+    return url
 
+def prompt_for_locations(rmv_url):
+    """Prompts user to select locations and saves them."""
     print("Fetching available RMV locations...")
     options = webdriver.ChromeOptions()
     options.add_argument("--headless")
@@ -51,14 +80,14 @@ def setup_env_file(url=None):
     driver = None
     try:
         driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()), options=options)
-        all_locations = get_all_locations(driver, url)
+        all_locations = get_all_locations(driver, rmv_url)
     finally:
         if driver:
             driver.quit()
 
     if not all_locations:
-        print("Could not fetch locations. Aborting setup.", file=sys.stderr)
-        return False
+        logger.error("Could not fetch locations. Cannot proceed.")
+        return None
 
     print("Available Locations:")
     for loc in all_locations:
@@ -69,10 +98,9 @@ def setup_env_file(url=None):
             selected_numbers_str = input("Enter the numbers of the locations you want to monitor (comma-separated): ")
             selected_numbers = [int(n.strip()) for n in selected_numbers_str.split(',')]
             
-            # Check if all selected numbers are valid
             valid_numbers = [loc['number'] for loc in all_locations]
             if all(num in valid_numbers for num in selected_numbers):
-                break  # Exit loop if input is valid
+                break
             else:
                 print("Error: One or more numbers are not in the list of available locations. Please try again.", file=sys.stderr)
         except ValueError:
@@ -80,21 +108,30 @@ def setup_env_file(url=None):
     
     locations_to_monitor = [loc for loc in all_locations if loc['number'] in selected_numbers]
     location_ids_to_monitor = [loc['id'] for loc in locations_to_monitor]
+    location_ids_str = ','.join(location_ids_to_monitor)
+    update_env_file("LOCATIONS_TO_MONITOR", location_ids_str)
+    return location_ids_str
 
-    try:
-        frequency_minutes = int(input("How often to check for appointments (in minutes)? [default: 5]: ") or "5")
-    except ValueError:
-        frequency_minutes = 5
+def prompt_for_frequency():
+    """Prompts user for the check frequency and saves it."""
+    while True:
+        try:
+            frequency_minutes = int(input("How often to check for appointments (in minutes)? [default: 5]: ") or "5")
+            break
+        except ValueError:
+            print("Error: Please enter a valid number.", file=sys.stderr)
+    update_env_file("CHECK_FREQUENCY_MINUTES", str(frequency_minutes))
+    return frequency_minutes
 
-    with open('.env', 'w') as f:
-        f.write(f"RMV_URL={url}\n")
-        f.write(f"NTFY_URL={ntfy_url}\n")
-        f.write(f"LOCATIONS_TO_MONITOR={','.join(location_ids_to_monitor)}\n")
-        f.write(f"CHECK_FREQUENCY_MINUTES={frequency_minutes}\n")
-    
-    print(f"\nConfiguration saved to .env file.")
+def setup_env_file():
+    """Runs the full interactive setup to create/update the .env file."""
+    print("--- Full RMV Appointment Checker Setup ---")
+    rmv_url = prompt_for_rmv_url()
+    prompt_for_ntfy_url()
+    prompt_for_locations(rmv_url)
+    prompt_for_frequency()
+    print("\nConfiguration saved to .env file.")
     return True
-
 
 def get_earliest_date(driver, wait):
     """
@@ -206,6 +243,6 @@ def get_rmv_data(url, locations_to_check_by_id=None):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run the interactive setup for the RMV appointment checker.")
-    parser.add_argument("--url", help="The custom URL from the RMV email (optional).")
-    args = parser.parse_args()
-    setup_env_file(args.url)
+    # This script is now primarily for a full, clean setup.
+    # The monitor script handles individual missing items.
+    setup_env_file()

@@ -7,7 +7,7 @@ try:
     from dotenv import load_dotenv
     from webdriver_manager.chrome import ChromeDriverManager
 except ImportError as e:
-    missing_module = str(e).split("'")[1]
+    missing_module = str(e).split("'\")[1]
     print(f"FATAL: Missing required Python package '{missing_module}'.", file=sys.stderr)
     print("Please install all required packages by running the following command:", file=sys.stderr)
     print("\n    pip install -r requirements.txt\n", file=sys.stderr)
@@ -18,11 +18,15 @@ import os
 import time
 import logging
 from datetime import datetime
-from rmv_checker import get_rmv_data, setup_env_file, get_all_locations
+from rmv_checker import (
+    get_rmv_data, 
+    get_all_locations,
+    prompt_for_rmv_url,
+    prompt_for_ntfy_url,
+    prompt_for_locations,
+    prompt_for_frequency
+)
 from selenium.webdriver.chrome.service import Service as ChromeService
-
-
-load_dotenv()
 
 # --- Logging Setup ---
 logger = logging.getLogger(__name__)
@@ -41,8 +45,9 @@ c_handler.setFormatter(c_format)
 f_handler.setFormatter(f_format)
 
 # Add handlers to the logger
-logger.addHandler(c_handler)
-logger.addHandler(f_handler)
+if not logger.handlers:
+    logger.addHandler(c_handler)
+    logger.addHandler(f_handler)
 
 
 STATE_FILE = 'state.json'
@@ -124,34 +129,34 @@ def check_for_appointments(rmv_url, ntfy_url, locations_to_monitor, state):
 
 def run_monitor():
     """Main monitoring loop."""
-    load_dotenv() # Load existing .env file if it exists
+    load_dotenv()
 
-    # --- Configuration Reset ---
-    reset_config_choice = input("Do you want to reset the configuration (URL, locations, etc.)? [y/N]: ").lower()
-    if reset_config_choice == 'y':
-        logger.info("Starting configuration setup...")
-        setup_env_file()
-        load_dotenv(override=True) # Reload environment variables after setup
-
-    # --- Check for complete configuration ---
+    # --- Configuration Healing ---
     rmv_url = os.getenv("RMV_URL")
+    if not rmv_url:
+        logger.warning("RMV_URL not found in .env file.")
+        rmv_url = prompt_for_rmv_url()
+
     ntfy_url = os.getenv("NTFY_URL")
+    if not ntfy_url:
+        logger.warning("NTFY_URL not found in .env file.")
+        ntfy_url = prompt_for_ntfy_url()
+
     locations_to_monitor_ids_str = os.getenv("LOCATIONS_TO_MONITOR")
+    if not locations_to_monitor_ids_str:
+        logger.warning("LOCATIONS_TO_MONITOR not found in .env file.")
+        locations_to_monitor_ids_str = prompt_for_locations(rmv_url)
 
-    if not all([rmv_url, ntfy_url, locations_to_monitor_ids_str]):
-        logger.warning("Configuration is incomplete or not found. Starting interactive setup...")
-        setup_env_file()
-        load_dotenv(override=True) # Reload environment variables after setup
-        # Reload variables after setup
-        rmv_url = os.getenv("RMV_URL")
-        ntfy_url = os.getenv("NTFY_URL")
-        locations_to_monitor_ids_str = os.getenv("LOCATIONS_TO_MONITOR")
-
-    locations_to_monitor_ids = locations_to_monitor_ids_str.split(',') if locations_to_monitor_ids_str else []
+    frequency_minutes_str = os.getenv("CHECK_FREQUENCY_MINUTES")
+    if not frequency_minutes_str:
+        logger.warning("CHECK_FREQUENCY_MINUTES not found in .env file.")
+        frequency_minutes_str = str(prompt_for_frequency())
+    
+    locations_to_monitor_ids = locations_to_monitor_ids_str.split(',')
+    frequency_minutes = int(frequency_minutes_str)
 
     # --- Fetch Location Names ---
     logger.info("Fetching all location data for friendly names...")
-    from rmv_checker import get_all_locations
     options = webdriver.ChromeOptions()
     options.add_argument("--headless")
     options.add_argument("--no-sandbox")
@@ -182,11 +187,6 @@ def run_monitor():
             logger.info("Deleted state.json")
     
     state = load_json(STATE_FILE)
-
-    try:
-        frequency_minutes = int(os.getenv("CHECK_FREQUENCY_MINUTES", "5"))
-    except (ValueError, TypeError):
-        frequency_minutes = 5 # Default if value is invalid or not a number
 
     logger.info(f"Starting monitor. Will check every {frequency_minutes} minutes.")
 

@@ -42,13 +42,15 @@ A simple tool to monitor the Massachusetts RMV website for earlier appointment t
 
 ### Running the Monitor
 
-Simply run the monitor script. It will use your saved settings to start checking.
+Simply run the monitor script. 
 
 ```bash
 python3 monitor.py
 ```
 
-On startup, you can choose to reset your configuration or notification history if needed. Otherwise, it will start monitoring immediately.
+If it's your first time running it, or if any configuration is missing, it will automatically guide you through a one-time setup to get the information it needs.
+
+On subsequent runs, it will use your saved settings to start checking immediately. You will only be asked if you want to reset your notification history.
 
 ### Running in the Background
 
@@ -67,3 +69,4 @@ ps aux | grep monitor.py
 # Stop the process
 kill <PID>
 ```
+
