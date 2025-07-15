@@ -7,7 +7,7 @@ try:
     from dotenv import load_dotenv
     from webdriver_manager.chrome import ChromeDriverManager
 except ImportError as e:
-    missing_module = str(e).split("'\")[1]
+    missing_module = str(e).split("'")[1]
     print(f"FATAL: Missing required Python package '{missing_module}'.", file=sys.stderr)
     print("Please install all required packages by running the following command:", file=sys.stderr)
     print("\n    pip install -r requirements.txt\n", file=sys.stderr)
