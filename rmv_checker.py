@@ -81,10 +81,16 @@ def setup_env_file(url=None):
     locations_to_monitor = [loc for loc in all_locations if loc['number'] in selected_numbers]
     location_ids_to_monitor = [loc['id'] for loc in locations_to_monitor]
 
+    try:
+        frequency_minutes = int(input("How often to check for appointments (in minutes)? [default: 5]: ") or "5")
+    except ValueError:
+        frequency_minutes = 5
+
     with open('.env', 'w') as f:
         f.write(f"RMV_URL={url}\n")
         f.write(f"NTFY_URL={ntfy_url}\n")
         f.write(f"LOCATIONS_TO_MONITOR={','.join(location_ids_to_monitor)}\n")
+        f.write(f"CHECK_FREQUENCY_MINUTES={frequency_minutes}\n")
     
     print(f"\nConfiguration saved to .env file.")
     return True

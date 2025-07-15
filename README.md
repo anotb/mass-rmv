@@ -32,31 +32,23 @@ A simple tool to monitor the Massachusetts RMV website for earlier appointment t
     pip install -r requirements.txt
     ```
 
-3.  **Run the interactive setup:**
-    This will create a `.env` file in the project directory to store your configuration.
+3.  **Run the monitor:**
+    The first time you run the script, it will automatically guide you through a one-time interactive setup.
     ```bash
-    python3 rmv_checker.py
+    python3 monitor.py
     ```
-    You will be asked for:
-    *   Your unique RMV URL (from the email).
-    *   Your ntfy topic URL.
-    *   The specific RMV locations you want to monitor.
 
 ## Usage
 
 ### Running the Monitor
 
-Simply run the monitor script. It will guide you through setup if needed.
+Simply run the monitor script. It will use your saved settings to start checking.
 
 ```bash
 python3 monitor.py
 ```
 
-On startup, the script will ask if you want to:
-1.  **Reset Configuration:** Say `y` if you want to change your RMV URL, ntfy topic, or the locations you are monitoring.
-2.  **Reset Notification History:** Say `y` if you want to clear the memory of past appointments and be notified about them again.
-
-After that, it will ask how frequently (in minutes) you want to check for appointments.
+On startup, you can choose to reset your configuration or notification history if needed. Otherwise, it will start monitoring immediately.
 
 ### Running in the Background
 

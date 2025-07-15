@@ -1,15 +1,26 @@
+import sys
+
+# --- Dependency Check ---
+try:
+    import requests
+    from selenium import webdriver
+    from dotenv import load_dotenv
+    from webdriver_manager.chrome import ChromeDriverManager
+except ImportError as e:
+    missing_module = str(e).split("'")[1]
+    print(f"FATAL: Missing required Python package '{missing_module}'.", file=sys.stderr)
+    print("Please install all required packages by running the following command:", file=sys.stderr)
+    print("\n    pip install -r requirements.txt\n", file=sys.stderr)
+    sys.exit(1)
+
 import json
 import os
-import sys
 import time
-import requests
 import logging
 from datetime import datetime
-from dotenv import load_dotenv
 from rmv_checker import get_rmv_data, setup_env_file, get_all_locations
-from selenium import webdriver
 from selenium.webdriver.chrome.service import Service as ChromeService
-from webdriver_manager.chrome import ChromeDriverManager
+
 
 load_dotenv()
 
@@ -173,9 +184,9 @@ def run_monitor():
     state = load_json(STATE_FILE)
 
     try:
-        frequency_minutes = int(input("How often to check for appointments (in minutes)? [default: 5]: ") or "5")
-    except ValueError:
-        frequency_minutes = 5
+        frequency_minutes = int(os.getenv("CHECK_FREQUENCY_MINUTES", "5"))
+    except (ValueError, TypeError):
+        frequency_minutes = 5 # Default if value is invalid or not a number
 
     logger.info(f"Starting monitor. Will check every {frequency_minutes} minutes.")
 
