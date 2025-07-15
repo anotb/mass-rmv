@@ -113,21 +113,34 @@ def check_for_appointments(rmv_url, ntfy_url, locations_to_monitor, state):
 
 def run_monitor():
     """Main monitoring loop."""
-    if not os.path.exists('.env'):
-        logger.info("Configuration file (.env) not found. Starting interactive setup...")
-        setup_env_file()
-        load_dotenv() # Reload environment variables after setup
+    load_dotenv() # Load existing .env file if it exists
 
+    # --- Configuration Reset ---
+    reset_config_choice = input("Do you want to reset the configuration (URL, locations, etc.)? [y/N]: ").lower()
+    if reset_config_choice == 'y':
+        logger.info("Starting configuration setup...")
+        setup_env_file()
+        load_dotenv(override=True) # Reload environment variables after setup
+
+    # --- Check for complete configuration ---
     rmv_url = os.getenv("RMV_URL")
     ntfy_url = os.getenv("NTFY_URL")
-    locations_to_monitor_ids = os.getenv("LOCATIONS_TO_MONITOR", "").split(',')
+    locations_to_monitor_ids_str = os.getenv("LOCATIONS_TO_MONITOR")
 
-    if not all([rmv_url, ntfy_url, locations_to_monitor_ids]):
-        logger.error("Configuration is incomplete. Please run 'python3 rmv_checker.py' to set up.")
-        sys.exit(1)
+    if not all([rmv_url, ntfy_url, locations_to_monitor_ids_str]):
+        logger.warning("Configuration is incomplete or not found. Starting interactive setup...")
+        setup_env_file()
+        load_dotenv(override=True) # Reload environment variables after setup
+        # Reload variables after setup
+        rmv_url = os.getenv("RMV_URL")
+        ntfy_url = os.getenv("NTFY_URL")
+        locations_to_monitor_ids_str = os.getenv("LOCATIONS_TO_MONITOR")
 
-    # Fetch all location names for user-friendly messages
+    locations_to_monitor_ids = locations_to_monitor_ids_str.split(',') if locations_to_monitor_ids_str else []
+
+    # --- Fetch Location Names ---
     logger.info("Fetching all location data for friendly names...")
+    from rmv_checker import get_all_locations
     options = webdriver.ChromeOptions()
     options.add_argument("--headless")
     options.add_argument("--no-sandbox")
@@ -150,9 +163,10 @@ def run_monitor():
         for loc_id in locations_to_monitor_ids
     ]
 
+    # --- State Reset ---
     if os.path.exists(STATE_FILE):
-        reset_choice = input("Do you want to delete the existing state.json file? [y/N]: ").lower()
-        if reset_choice == 'y':
+        reset_state_choice = input("Do you want to delete the existing state.json file? [y/N]: ").lower()
+        if reset_state_choice == 'y':
             os.remove(STATE_FILE)
             logger.info("Deleted state.json")
     
@@ -169,7 +183,7 @@ def run_monitor():
         try:
             state = check_for_appointments(rmv_url, ntfy_url, locations_to_monitor, state)
         except Exception as e:
-            logger.error(f"An unexpected error occurred during the check: {e}", exc_info=True)
+            logger.error("An unexpected error occurred during the check:", exc_info=True)
             logger.warning("The monitor will continue running.")
         
         logger.info(f"Sleeping for {frequency_minutes} minutes...")
