@@ -109,8 +109,19 @@ def setup_env_file(url=None):
     for loc in all_locations:
         print(f"  {loc['number']}: {loc['service_center']}")
 
-    selected_numbers_str = input("Enter the numbers of the locations you want to monitor (comma-separated): ")
-    selected_numbers = [int(n.strip()) for n in selected_numbers_str.split(',')]
+    while True:
+        try:
+            selected_numbers_str = input("Enter the numbers of the locations you want to monitor (comma-separated): ")
+            selected_numbers = [int(n.strip()) for n in selected_numbers_str.split(',')]
+            
+            # Check if all selected numbers are valid
+            valid_numbers = [loc['number'] for loc in all_locations]
+            if all(num in valid_numbers for num in selected_numbers):
+                break  # Exit loop if input is valid
+            else:
+                print("Error: One or more numbers are not in the list of available locations. Please try again.", file=sys.stderr)
+        except ValueError:
+            print("Error: Invalid input. Please enter only numbers, separated by commas.", file=sys.stderr)
     
     locations_to_monitor = [loc for loc in all_locations if loc['number'] in selected_numbers]
     location_ids_to_monitor = [loc['id'] for loc in locations_to_monitor]
@@ -134,13 +145,11 @@ def get_rmv_data(url, locations_to_check_by_id=None):
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/555.36 (KHTML, like Gecko) Chrome/90.0.4430.212 Safari/555.36")
 
-    driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()), options=options)
-    wait = WebDriverWait(driver, 10)
     results = []
+    num_to_check = len(locations_to_check_by_id)
 
-    try:
-        num_to_check = len(locations_to_check_by_id)
-        for i, location in enumerate(locations_to_check_by_id):
+    for i, location in enumerate(locations_to_check_by_id):
+        try:
             driver.get(url)
             
             element_to_click = wait.until(EC.presence_of_element_located((By.XPATH, f"//button[@data-id='{location['id']}']")))
@@ -156,12 +165,13 @@ def get_rmv_data(url, locations_to_check_by_id=None):
                 "service_center": location_name,
                 "earliest_date": earliest_date
             })
+        except Exception as e:
+            location_name = location.get('service_center', f"ID-{location['id']}")
+            print(f"An unexpected error occurred while checking {location_name}: {e}", file=sys.stderr)
+            # Continue to the next location
+            continue
 
-    except Exception as e:
-        print(f"An unexpected error occurred: {e}", file=sys.stderr)
-    finally:
-        driver.quit()
-    
+    driver.quit()
     return results
 
 if __name__ == "__main__":

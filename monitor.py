@@ -117,13 +117,18 @@ def run_monitor():
     print(f"Starting monitor. Will check every {frequency_minutes} minutes.")
 
     while True:
-        # This is a simplified approach. A more robust solution would fetch all locations
-        # and filter them by the IDs on each run to ensure the names are up to date.
-        # For now, we pass the IDs and the scraper will have to handle it.
-        # The current `get_rmv_data` expects a list of dicts, so we create it here.
-        locations_to_monitor = [{'id': loc_id, 'service_center': f'ID-{loc_id}'} for loc_id in locations_to_monitor_ids]
+        try:
+            # This is a simplified approach. A more robust solution would fetch all locations
+            # and filter them by the IDs on each run to ensure the names are up to date.
+            # For now, we pass the IDs and the scraper will have to handle it.
+            # The current `get_rmv_data` expects a list of dicts, so we create it here.
+            locations_to_monitor = [{'id': loc_id, 'service_center': f'ID-{loc_id}'} for loc_id in locations_to_monitor_ids]
 
-        state = check_for_appointments(rmv_url, ntfy_url, locations_to_monitor, state)
+            state = check_for_appointments(rmv_url, ntfy_url, locations_to_monitor, state)
+        except Exception as e:
+            print(f"An unexpected error occurred during the check: {e}", file=sys.stderr)
+            print("The monitor will continue running.", file=sys.stderr)
+        
         print(f"Sleeping for {frequency_minutes} minutes...")
         time.sleep(frequency_minutes * 60)
 
