@@ -5,4 +5,5 @@ cron.log.venv/
 __pycache__/
 .venv/
 .env
+monitor.log
 
