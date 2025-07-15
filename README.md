@@ -40,33 +40,35 @@ A simple tool to monitor the Massachusetts RMV website for earlier appointment t
 
 ## Usage
 
-### Running the Monitor
+### Step 1: Initial Setup (Interactive)
 
-Simply run the monitor script. 
+You must run the monitor in your terminal one time to complete the initial setup.
 
 ```bash
 python3 monitor.py
 ```
 
-If it's your first time running it, or if any configuration is missing, it will automatically guide you through a one-time setup to get the information it needs.
+The script will guide you through creating a `.env` file with your configuration.
 
-On subsequent runs, it will use your saved settings to start checking immediately. You will only be asked if you want to reset your notification history.
+### Step 2: Running the Monitor
 
-### Running in the Background
+Once the setup is complete, you can run the monitor.
 
-To keep the monitor running after you close your terminal, use `nohup`:
+**To run in the foreground:**
+```bash
+python3 monitor.py
+```
 
+**To run in the background:**
 ```bash
 nohup python3 monitor.py &
 ```
 
-All detailed, timestamped output will be saved to a `monitor.log` file. To stop the monitor, find its Process ID (PID) and use the `kill` command:
+If you run in the background with an incomplete configuration, the script will log a fatal error to `monitor.log` and exit.
 
-```bash
-# Find the process ID
-ps aux | grep monitor.py
+### Troubleshooting
 
-# Stop the process
-kill <PID>
-```
+*   **Process not staying alive?** Check the `monitor.log` file for errors. It will tell you if your setup is incomplete.
+*   **Want to reset your configuration?** Simply delete the `.env` file and run the monitor interactively again.
+*   **Want to reset notification history?** When you run the script interactively, it will ask if you want to delete the `state.json` file.
 

@@ -132,23 +132,37 @@ def run_monitor():
     load_dotenv()
 
     # --- Configuration Healing ---
+    is_interactive = sys.stdout.isatty()
+    
     rmv_url = os.getenv("RMV_URL")
     if not rmv_url:
+        if not is_interactive:
+            logger.error("FATAL: RMV_URL not found. Please run the script interactively once to set it up.")
+            sys.exit(1)
         logger.warning("RMV_URL not found in .env file.")
         rmv_url = prompt_for_rmv_url()
 
     ntfy_url = os.getenv("NTFY_URL")
     if not ntfy_url:
+        if not is_interactive:
+            logger.error("FATAL: NTFY_URL not found. Please run the script interactively once to set it up.")
+            sys.exit(1)
         logger.warning("NTFY_URL not found in .env file.")
         ntfy_url = prompt_for_ntfy_url()
 
     locations_to_monitor_ids_str = os.getenv("LOCATIONS_TO_MONITOR")
     if not locations_to_monitor_ids_str:
+        if not is_interactive:
+            logger.error("FATAL: LOCATIONS_TO_MONITOR not found. Please run the script interactively once to set it up.")
+            sys.exit(1)
         logger.warning("LOCATIONS_TO_MONITOR not found in .env file.")
         locations_to_monitor_ids_str = prompt_for_locations(rmv_url)
 
     frequency_minutes_str = os.getenv("CHECK_FREQUENCY_MINUTES")
     if not frequency_minutes_str:
+        if not is_interactive:
+            logger.error("FATAL: CHECK_FREQUENCY_MINUTES not found. Please run the script interactively once to set it up.")
+            sys.exit(1)
         logger.warning("CHECK_FREQUENCY_MINUTES not found in .env file.")
         frequency_minutes_str = str(prompt_for_frequency())
     
@@ -180,7 +194,7 @@ def run_monitor():
     ]
 
     # --- State Reset ---
-    if os.path.exists(STATE_FILE):
+    if is_interactive and os.path.exists(STATE_FILE):
         reset_state_choice = input("Do you want to delete the existing state.json file? [y/N]: ").lower()
         if reset_state_choice == 'y':
             os.remove(STATE_FILE)
