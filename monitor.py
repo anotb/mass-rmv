@@ -4,7 +4,10 @@ import sys
 import time
 import requests
 from datetime import datetime
-from rmv_checker import get_rmv_data, setup_config, CONFIG_FILE
+from dotenv import load_dotenv
+from rmv_checker import get_rmv_data, setup_env_file
+
+load_dotenv()
 
 STATE_FILE = 'state.json'
 
@@ -42,11 +45,11 @@ def parse_date(date_str):
             print(f"Error parsing date string '{date_str}': {e}", file=sys.stderr)
             return None
 
-def check_for_appointments(config, state):
+def check_for_appointments(rmv_url, ntfy_url, locations_to_monitor, state):
     """The core logic for checking appointments and sending notifications."""
     print(f"--- Running RMV Appointment Check [{datetime.now()}] ---")
     
-    live_data = get_rmv_data(config['rmv_url'], config['locations_to_monitor'])
+    live_data = get_rmv_data(rmv_url, locations_to_monitor)
     if not live_data:
         print("Could not fetch live appointment data.", file=sys.stderr)
         return state
@@ -66,7 +69,7 @@ def check_for_appointments(config, state):
 
         if not last_known_date or new_date < last_known_date:
             message = f"New appointment at {location_name}: {new_date.strftime('%a, %b %d, %Y at %I:%M %p')}"
-            send_ntfy_notification(config['ntfy_url'], message)
+            send_ntfy_notification(ntfy_url, message)
             state[location_id] = new_date.strftime('%a %b %d, %Y, %I:%M %p')
         else:
             print(f"No change for {location_name}. Earliest is still {last_known_date_str}")
@@ -77,25 +80,23 @@ def check_for_appointments(config, state):
 
 def run_monitor():
     """Main monitoring loop."""
-    if os.path.exists(CONFIG_FILE) or os.path.exists(STATE_FILE):
-        reset_choice = input("Do you want to delete the existing config and state files? [y/N]: ").lower()
-        if reset_choice == 'y':
-            if os.path.exists(CONFIG_FILE):
-                os.remove(CONFIG_FILE)
-                print("Deleted config.json")
-            if os.path.exists(STATE_FILE):
-                os.remove(STATE_FILE)
-                print("Deleted state.json")
+    if not os.path.exists('.env'):
+        print("Configuration file (.env) not found. Starting interactive setup...")
+        setup_env_file()
 
-    if not os.path.exists(CONFIG_FILE):
-        print("Configuration file not found. Starting interactive setup...")
-        config = setup_config()
-    else:
-        config = load_json(CONFIG_FILE)
+    rmv_url = os.getenv("RMV_URL")
+    ntfy_url = os.getenv("NTFY_URL")
+    locations_to_monitor_ids = os.getenv("LOCATIONS_TO_MONITOR", "").split(',')
 
-    if not config:
-        print("Configuration is empty. Exiting.", file=sys.stderr)
+    if not all([rmv_url, ntfy_url, locations_to_monitor_ids]):
+        print("Configuration is incomplete. Please run 'python3 rmv_checker.py' to set up.", file=sys.stderr)
         sys.exit(1)
+
+    if os.path.exists(STATE_FILE):
+        reset_choice = input("Do you want to delete the existing state.json file? [y/N]: ").lower()
+        if reset_choice == 'y':
+            os.remove(STATE_FILE)
+            print("Deleted state.json")
     
     state = load_json(STATE_FILE)
 
@@ -107,9 +108,16 @@ def run_monitor():
     print(f"Starting monitor. Will check every {frequency_minutes} minutes.")
 
     while True:
-        state = check_for_appointments(config, state)
+        # This is a simplified approach. A more robust solution would fetch all locations
+        # and filter them by the IDs on each run to ensure the names are up to date.
+        # For now, we pass the IDs and the scraper will have to handle it.
+        # The current `get_rmv_data` expects a list of dicts, so we create it here.
+        locations_to_monitor = [{'id': loc_id, 'service_center': f'ID-{loc_id}'} for loc_id in locations_to_monitor_ids]
+
+        state = check_for_appointments(rmv_url, ntfy_url, locations_to_monitor, state)
         print(f"Sleeping for {frequency_minutes} minutes...")
         time.sleep(frequency_minutes * 60)
 
 if __name__ == "__main__":
     run_monitor()
+

@@ -1,4 +1,3 @@
-import json
 import argparse
 import sys
 from selenium import webdriver
@@ -8,8 +7,6 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, NoSuchElementException
 from selenium.webdriver.chrome.service import Service as ChromeService
 from webdriver_manager.chrome import ChromeDriverManager
-
-CONFIG_FILE = 'config.json'
 
 def get_locations(driver, wait):
     """Gets all location elements from the page."""
@@ -38,8 +35,8 @@ def get_earliest_date(driver, wait):
     except Exception as e:
         return f"Error finding date: {e}"
 
-def setup_config(url=None):
-    """Runs an interactive setup to create the config.json file."""
+def setup_env_file(url=None):
+    """Runs an interactive setup to create the .env file."""
     print("--- RMV Appointment Checker Setup ---")
     
     if not url:
@@ -74,18 +71,15 @@ def setup_config(url=None):
     selected_numbers = [int(n.strip()) for n in selected_numbers_str.split(',')]
     
     locations_to_monitor = [loc for loc in all_locations if loc['number'] in selected_numbers]
+    location_ids_to_monitor = [loc['id'] for loc in locations_to_monitor]
 
-    config = {
-        "rmv_url": url,
-        "ntfy_url": ntfy_url,
-        "locations_to_monitor": locations_to_monitor
-    }
-
-    with open(CONFIG_FILE, 'w') as f:
-        json.dump(config, f, indent=2)
+    with open('.env', 'w') as f:
+        f.write(f"RMV_URL={url}\n")
+        f.write(f"NTFY_URL={ntfy_url}\n")
+        f.write(f"LOCATIONS_TO_MONITOR={','.join(location_ids_to_monitor)}\n")
     
-    print(f"\nConfiguration saved to {CONFIG_FILE}")
-    return config
+    print(f"\nConfiguration saved to .env file.")
+    return True
 
 
 def get_rmv_data(url, locations_to_check_by_id=None):
@@ -96,7 +90,7 @@ def get_rmv_data(url, locations_to_check_by_id=None):
     options.add_argument("--headless")
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
-    options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.212 Safari/537.36")
+    options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/555.36 (KHTML, like Gecko) Chrome/90.0.4430.212 Safari/555.36")
 
     driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()), options=options)
     wait = WebDriverWait(driver, 10)
@@ -116,7 +110,6 @@ def get_rmv_data(url, locations_to_check_by_id=None):
             earliest_date = get_earliest_date(driver, wait)
             
             results.append({
-                "number": location['number'],
                 "id": location['id'],
                 "service_center": location_name,
                 "earliest_date": earliest_date
@@ -133,4 +126,5 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run the interactive setup for the RMV appointment checker.")
     parser.add_argument("--url", help="The custom URL from the RMV email (optional).")
     args = parser.parse_args()
-    setup_config(args.url)
+    setup_env_file(args.url)
+

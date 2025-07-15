@@ -6,9 +6,9 @@ A simple tool to monitor the Massachusetts RMV website for earlier appointment t
 
 *   Continuously monitors selected RMV locations for new appointment slots.
 *   Sends instant notifications to your devices using a self-hosted or public [ntfy](https://ntfy.sh) server.
-*   Interactive command-line setup to configure your custom RMV URL, ntfy topic, and locations.
+*   Securely manages configuration using a `.env` file, keeping your sensitive URLs out of version control.
+*   Interactive command-line setup to create your `.env` file.
 *   Remembers the last seen appointment time to avoid duplicate notifications.
-*   Option to easily reset the configuration and start fresh.
 
 ## Getting Started
 
@@ -33,9 +33,9 @@ A simple tool to monitor the Massachusetts RMV website for earlier appointment t
     ```
 
 3.  **Run the interactive setup:**
-    The first time you run the monitor, it will guide you through a setup process.
+    This will create a `.env` file in the project directory to store your configuration.
     ```bash
-    python3 monitor.py
+    python3 rmv_checker.py
     ```
     You will be asked for:
     *   Your unique RMV URL (from the email).
@@ -46,7 +46,7 @@ A simple tool to monitor the Massachusetts RMV website for earlier appointment t
 
 ### Running the Monitor
 
-After the initial setup, run the monitor script to start checking for appointments. You'll be asked how frequently (in minutes) you want to check.
+Once your `.env` file is created, you can start the monitor. You'll be asked how frequently (in minutes) you want to check.
 
 ```bash
 python3 monitor.py
@@ -60,7 +60,7 @@ To keep the monitor running after you close your terminal, use `nohup`:
 nohup python3 monitor.py &
 ```
 
-All output will be saved to a `nohup.out` file in the same directory. To stop the monitor, find its Process ID (PID) and use the `kill` command:
+All output will be saved to a `nohup.out` file. To stop the monitor, find its Process ID (PID) and use the `kill` command:
 
 ```bash
 # Find the process ID
@@ -72,9 +72,10 @@ kill <PID>
 
 ### Resetting Configuration
 
-If you need to change your settings (like the RMV URL or locations), you can trigger the interactive setup again. When you start the monitor, it will ask if you want to delete the existing configuration. Simply answer `y`.
+To change your settings (like the RMV URL or locations), simply run the interactive setup again. This will overwrite the existing `.env` file.
 
 ```bash
-python3 monitor.py
-> Do you want to delete the existing config and state files? [y/N]: y
+python3 rmv_checker.py
 ```
+
+You can also reset the notification history by deleting the `state.json` file. The monitor will prompt you to do this automatically on startup if the file exists.

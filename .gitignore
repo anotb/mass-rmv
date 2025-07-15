@@ -4,3 +4,5 @@ state.json
 cron.log.venv/
 __pycache__/
 .venv/
+.env
+
