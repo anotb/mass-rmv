@@ -146,7 +146,7 @@ def run_monitor():
 
     location_id_to_name_map = {loc['id']: loc['service_center'] for loc in all_locations_data}
     locations_to_monitor = [
-        {'id': loc_id, 'service_center': location_id_to_name__map.get(loc_id, f"ID-{loc_id}")} 
+        {'id': loc_id, 'service_center': location_id_to_name_map.get(loc_id, f"ID-{loc_id}")} 
         for loc_id in locations_to_monitor_ids
     ]
 
